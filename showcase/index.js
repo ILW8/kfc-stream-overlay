@@ -24,14 +24,15 @@ let strain_container = document.getElementById('strain-container');
 let mappool;
 (async () => {
 	$.ajaxSetup({ cache: false });
-	mappool = (await $.getJSON('../_data/beatmaps.json')).beatmaps;
+	let a = await $.getJSON('../_data/beatmaps.json');
+	mappool = (a).beatmaps;
 })();
 
 socket.onopen = () => { console.log('Successfully Connected'); };
 socket.onclose = event => { console.log('Socket Closed Connection: ', event); socket.send('Client Closed!'); };
 socket.onerror = error => { console.log('Socket Error: ', error); };
 
-let image, title_, diff_, artist_, replay_, id;
+let image, title_, diff_, artist_, replay_, id, md5;
 let len_, bpm_, sr_, cs_, ar_, od_;
 let strains, seek, fulltime, strainsStartFraction, strainsEndFraction;
 let state;
@@ -54,9 +55,13 @@ socket.onmessage = async event => {
 	}
 
 	// update now playing
-	if (mappool && id !== data.menu.bm.id) {
+	if (mappool && (id !== data.menu.bm.id || md5 !== data.menu.bm.md5 )) {
 		id = data.menu.bm.id;
-		let map = mappool.find(m => m.beatmap_id == id);
+		md5 = data.menu.bm.md5;
+		let map = mappool.find(m => m.beatmap_id === id);
+		if (map === undefined) {
+			map = mappool.find(m => m.md5 === md5);
+		}
 		nowplaying.innerHTML = map ? map.identifier : 'XX';
 	}
 
