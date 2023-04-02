@@ -34,7 +34,7 @@ socket.onerror = error => { console.log('Socket Error: ', error); };
 
 let image, title_, diff_, artist_, replay_, id, md5;
 let len_, bpm_, sr_, cs_, ar_, od_;
-let strains, seek, fulltime, strainsStartFraction, strainsEndFraction;
+let strains, seek, fulltime;
 let state;
 let last_strain_update = 0;
 
@@ -123,24 +123,7 @@ socket.onmessage = async event => {
 	if (strains != JSON.stringify(data.menu.pp.strains) && window.strainGraph) {
 		strains = JSON.stringify(data.menu.pp.strains) || null;
 
-		strains = data.menu.pp.strains
-
-		let startTime = data.menu.bm.time.firstObj;
-		let endTime = data.menu.bm.time.full;
-		let mp3Time = data.menu.bm.time.mp3;  // full duration of song
-
-		if (endTime/mp3Time < 0.95 || startTime/mp3Time > 0.05) {  // don't trim if trim amount < 5% on either side
-			strainsStartFraction = Math.max(0,
-				-0.05 + // add padding to account for smoothing
-				startTime/mp3Time);
-			strainsEndFraction = Math.min(1.00, 0.05 + endTime/mp3Time);  // idem
-			strains = strains.slice(Math.floor(strains.length * strainsStartFraction), Math.floor(strains.length * strainsEndFraction));
-		} else {
-			strainsStartFraction = 0.;
-			strainsEndFraction = 1.;
-		}
-
-		let temp_strains = smooth(strains, 3);
+		let temp_strains = smooth(data.menu.pp.strains, 3);
 		let new_strains = [];
 		for (let i = 0; i < Math.min(temp_strains.length, 400); i++) {
 			new_strains.push(temp_strains[Math.floor(i * (temp_strains.length / Math.min(temp_strains.length, 400)))]);
@@ -157,18 +140,11 @@ socket.onmessage = async event => {
 	}
 
 	let now = Date.now();
-	if (fulltime !== Math.floor((strainsEndFraction - strainsStartFraction) * data.menu.bm.time.mp3)) {
-		fulltime = Math.floor((strainsEndFraction - strainsStartFraction) * data.menu.bm.time.mp3);
-	}
-	if (fulltime !== undefined && fulltime !== 0 && now - last_strain_update > 500) {
+	if (fulltime !== data.menu.bm.time.mp3) { fulltime = data.menu.bm.time.mp3; onepart = 1420 / fulltime; }
+	if (seek !== data.menu.bm.time.current && fulltime !== undefined && fulltime != 0 && now - last_strain_update > 500) {
 		last_strain_update = now;
-		seek = Math.min(
-			1.,
-			Math.max(
-				0.,
-				data.menu.bm.time.current - data.menu.bm.time.mp3 * strainsStartFraction)/fulltime
-		);
-		let maskPosition = `${-1220 + 1220 * seek}px 0px`;
+		seek = data.menu.bm.time.current;
+		let maskPosition = `${-1420 + onepart * seek}px 0px`;
 		progressChart.style.maskPosition = maskPosition;
 		progressChart.style.webkitMaskPosition = maskPosition;
 	}

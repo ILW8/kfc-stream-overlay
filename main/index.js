@@ -291,7 +291,7 @@ socket.onmessage = event => {
 	}
 
 	let now = Date.now();
-	if (fulltime !== Math.floor((strainsEndFraction - strainsStartFraction) * data.menu.bm.time.mp3)) {
+	if (fulltime !== data.menu.bm.time.full - data.menu.bm.time.firstObj) {
 		fulltime = Math.floor((strainsEndFraction - strainsStartFraction) * data.menu.bm.time.mp3);
 	}
 	if (fulltime !== undefined && fulltime !== 0 && now - last_strain_update > 500) {
