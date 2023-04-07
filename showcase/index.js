@@ -168,7 +168,7 @@ socket.onmessage = async event => {
 				0.,
 				data.menu.bm.time.current - data.menu.bm.time.mp3 * strainsStartFraction)/fulltime
 		);
-		let maskPosition = `${-1220 + 1220 * seek}px 0px`;
+		let maskPosition = `${-1420 + 1420 * seek}px 0px`;
 		progressChart.style.maskPosition = maskPosition;
 		progressChart.style.webkitMaskPosition = maskPosition;
 	}
