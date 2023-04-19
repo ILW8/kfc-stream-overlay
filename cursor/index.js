@@ -36,7 +36,7 @@ let map;  // current active map
 
 
 const SYNC_THRESHOLD_MS = 500; // if time delta between current drawn cursor and latest data > threshold, skip
-const TRAIL_LENGTH_MS = 500;
+const TRAIL_LENGTH_MS = 240;
 let cursorPositionsQueue = [];
 // let queueLatestTimestamp = 0;
 let startCursorTimestamp = -1;
@@ -44,6 +44,7 @@ let startTimestamp = -1;
 let previousTimestamp = 0;
 let lastDrawnCursorTimestamp = 0;
 let hasDrawn = false;
+let readyToDraw = true;
 
 let _temp_latest = undefined;
 
@@ -83,6 +84,12 @@ socket.onmessage = event => {
     //         cursorPositionsQueue.push(entry);
     //     }
     // }
+    if ((cursorPositionsQueue[cursorPositionsQueue.length - 1]?.Time ?? 0) < data.gameplay.recentCursorPositions.Replays[data.gameplay.recentCursorPositions.Replays.length - 1].Time) {
+        // console.log(cursorPositionsQueue[cursorPositionsQueue.length - 1]?.Time ?? 0);
+        // console.log(data.gameplay.recentCursorPositions.Replays[data.gameplay.recentCursorPositions.Replays.length - 1].Time);
+        // console.log("now ready to draw")
+        readyToDraw = true;
+    }
     cursorPositionsQueue = data.gameplay.recentCursorPositions.Replays;
     // queueLatestTimestamp = data.gameplay.cursorPosition.Time;
 
@@ -99,17 +106,21 @@ function drawCursorMovement(timestamp) {
         return;
     }
     if (startTimestamp === -1) {
+        if (!readyToDraw) {
+            return;
+        }
         console.log("startTimestamp -1")
         startTimestamp = timestamp;
         lastDrawnCursorTimestamp = 0
-        startCursorTimestamp = cursorPositionsQueue[0].Time + TRAIL_LENGTH_MS;
+        // startCursorTimestamp = cursorPositionsQueue[0].Time + TRAIL_LENGTH_MS;
 
-        // for (let entry of cursorPositionsQueue) {
-        //     if (entry.Time >= cursorPositionsQueue[cursorPositionsQueue.length - 1].Time - 2 * TRAIL_LENGTH_MS) {
-        //         startCursorTimestamp = entry.Time;
-        //     }
-        // }
-        // lastDrawnCursorTimestamp = startCursorTimestamp;
+        for (let entry of cursorPositionsQueue) {
+            if (entry.Time >= (cursorPositionsQueue[cursorPositionsQueue.length - 1].Time - TRAIL_LENGTH_MS)) {
+                startCursorTimestamp = entry.Time;
+                break;
+            }
+        }
+        // lastDrawnCursorTimestamp = startCursorTimestamp - 1;
     }
 
 
@@ -148,9 +159,9 @@ function drawCursorMovement(timestamp) {
         lastDrawnCursorTimestamp = lastDrawn.Time;
         lastDrawn = entry;
     }
-    // if (!trailDrawn) {
-    //     console.log("no trail drawn");
-    // }
+    if (!trailDrawn) {
+        console.log("no trail drawn");
+    }
     ctx.stroke();
     // if (lastDrawn.Time < (cursorTimestamp - TRAIL_LENGTH_MS)) {
     if (hasReachedEnd || !trailDrawn) {
@@ -158,6 +169,7 @@ function drawCursorMovement(timestamp) {
         // cursorTimestamp = startCursorTimestamp + (timestamp - startTimestamp);
         // console.log(`${lastDrawn.Time.toFixed(3).toString().padStart(10, '0')}\n${cursorTimestamp.toFixed(3).toString().padStart(10, '0')}`);
         startTimestamp = -1;
+        readyToDraw = false;
     }
 
     // draw circle
